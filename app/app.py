@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from models.task import add_task, get_tasks, get_task
 from models.task import delete_task as delete_task_model
+import os
 
 app = Flask(__name__)
 
@@ -38,4 +39,5 @@ def delete_task(task_id):
         return jsonify({'error': 'Task not found'}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

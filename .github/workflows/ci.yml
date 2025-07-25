@@ -26,8 +26,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         pip install pytest
+        pip install flake8
 
     - name: Run test
       run: |
         cd app
         python -m pytest
+    
+    - name: Run flake8
+      run: |
+        flake8 .

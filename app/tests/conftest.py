@@ -1,5 +1,7 @@
+
 import pytest
 from models import task as task_model
+
 
 @pytest.fixture(autouse=True)
 def reset_tasks():

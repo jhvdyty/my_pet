@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  service-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: flask_app_staging
+    ports:
+      - "5001:5000"  # Другой порт для staging
+    volumes:
+      - ./app:/app
+    environment:
+      - FLASK_ENV=staging
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/staging_db
+    depends_on:
+      - postgres
+    networks:
+      - staging-microservices
+
+  postgres:
+    image: postgres:16.0
+    container_name: postgres_staging
+    restart: always
+    ports:
+      - "5433:5432"  # Другой порт для staging
+    environment: 
+      POSTGRES_DB: staging_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - staging_postgres_data:/var/lib/postgresql/data 
+    networks:
+      - staging-microservices
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus_staging
+    ports:
+      - "9091:9090"  # Другой порт для staging
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - staging-microservices
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana_staging
+    ports:
+      - "3001:3000"  # Другой порт для staging
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - staging_grafana_data:/var/lib/grafana
+    networks:
+      - staging-microservices
+
+volumes:
+  staging_postgres_data:
+  staging_grafana_data:
+
+networks:
+  staging-microservices:
+    driver: bridge

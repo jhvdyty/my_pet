@@ -39,20 +39,17 @@ jobs:
 
   deploy-to-staging:
     needs: build-and-test
-    runs-on: self-hosted  # Используем ваш Kali сервер
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to Staging
+    - name: Deploy to Staging via Webhook
       run: |
-        cd ${{ github.workspace }}
-        git pull origin develop
-        docker compose -f docker-compose.staging.yml down
-        docker compose -f docker-compose.staging.yml build
-        docker compose -f docker-compose.staging.yml up -d
+        curl -X POST \
+          -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
+          -H "Content-Type: application/json" \
+          -d '{"branch": "develop"}' \
+          http://${{ secrets.STAGING_HOST }}:9999/deploy/staging
 
   deploy-to-production:
     needs: build-and-test

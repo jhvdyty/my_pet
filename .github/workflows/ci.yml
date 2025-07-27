@@ -1,7 +1,7 @@
-name: Build
+name: Build and Deploy
 on:
     push:
-        branches: [ main ]
+        branches: [ main, develop ]
     pull_request:
         branches: [ main ]
         
@@ -18,7 +18,6 @@ jobs:
         docker compose build
         docker compose up -d
         sleep 15
-
         docker compose down
     
     - name: Install dependencies
@@ -27,7 +26,7 @@ jobs:
         pip install -r app/requirements.txt
         pip install pytest
         pip install flake8
-
+        
     - name: Run test
       run: |
         cd app
@@ -37,12 +36,12 @@ jobs:
       run: |
         cd app
         flake8 .
-  
+
   deploy-to-staging:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || github.event_name == 'pull_request'
-
+    if: github.ref == 'refs/heads/develop'
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -54,8 +53,10 @@ jobs:
         username: ${{ secrets.STAGING_USER }}
         key: ${{ secrets.STAGING_SSH_KEY }}
         port: ${{ secrets.STAGING_PORT }}
+        timeout: 60s
+        command_timeout: 15m
         script: |
-          cd /home/kali/my_pet
+          cd /home/${{ secrets.STAGING_USER }}/my_pet
           git pull origin develop
           docker compose -f docker-compose.staging.yml down
           docker compose -f docker-compose.staging.yml build
@@ -65,8 +66,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: production
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -78,13 +78,11 @@ jobs:
         username: ${{ secrets.PROD_USER }}
         key: ${{ secrets.PROD_SSH_KEY }}
         port: ${{ secrets.PROD_PORT }}
+        timeout: 60s
+        command_timeout: 15m
         script: |
-          cd /home/kali/my_pet
+          cd /home/${{ secrets.PROD_USER }}/my_pet
           git pull origin main
           docker compose -f docker-compose.prod.yml down
           docker compose -f docker-compose.prod.yml build
           docker compose -f docker-compose.prod.yml up -d
-
-    
-
-

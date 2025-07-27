@@ -49,7 +49,8 @@ jobs:
           -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
           -H "Content-Type: application/json" \
           -d '{"branch": "develop"}' \
-          http://${{ secrets.STAGING_HOST }}:9999/deploy/staging
+          https://4d7abb03828d.ngrok-free.app
+
 
   deploy-to-production:
     needs: build-and-test

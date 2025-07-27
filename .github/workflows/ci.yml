@@ -39,28 +39,20 @@ jobs:
 
   deploy-to-staging:
     needs: build-and-test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Используем ваш Kali сервер
     if: github.ref == 'refs/heads/develop'
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Deploy to Staging Server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.STAGING_HOST }}
-        username: ${{ secrets.STAGING_USER }}
-        key: ${{ secrets.STAGING_SSH_KEY }}
-        port: ${{ secrets.STAGING_PORT }}
-        timeout: 60s
-        command_timeout: 15m
-        script: |
-          cd /home/${{ secrets.STAGING_USER }}/my_pet
-          git pull origin develop
-          docker compose -f docker-compose.staging.yml down
-          docker compose -f docker-compose.staging.yml build
-          docker compose -f docker-compose.staging.yml up -d
+    - name: Deploy to Staging
+      run: |
+        cd ${{ github.workspace }}
+        git pull origin develop
+        docker compose -f docker-compose.staging.yml down
+        docker compose -f docker-compose.staging.yml build
+        docker compose -f docker-compose.staging.yml up -d
 
   deploy-to-production:
     needs: build-and-test

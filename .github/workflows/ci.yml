@@ -21,7 +21,6 @@ jobs:
     - name: build version
       run: |
         echo "Building version $VERSION"
-        sed -i "s/^version = .*/version = \"$VERSION\"/" app/version.py
 
     - name: Build test services
       run: |

@@ -33,8 +33,8 @@ resource "docker_container" "postgres" {
         external = 5432
     }
     volumes {
-        host_path      = "${path.module}/postgres_data"
         container_path = "/var/lib/postgresql/data"
+        source = "${path.module}/postgres_data"
     }
   
 }

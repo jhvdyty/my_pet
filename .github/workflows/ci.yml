@@ -13,6 +13,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: set version
+      run: |
+        VERSION=$(git describe --tags --always) 
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: build version
+      run: |
+        echo "Building version $VERSION"
+        sed -i "s/^version = .*/version = \"$VERSION\"/" app/version.py
+
     - name: Build test services
       run: |
         docker compose build
@@ -76,3 +86,6 @@ jobs:
           docker compose -f docker-compose.prod.yml down
           docker compose -f docker-compose.prod.yml build
           docker compose -f docker-compose.prod.yml up -d
+
+
+        

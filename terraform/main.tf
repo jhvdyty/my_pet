@@ -19,7 +19,7 @@ resource "docker_image" "postgres" {
 
 resource "docker_container" "postgres" {
     name  = "postgres"
-    image = docker_image.postgres.latest
+    image = docker_image.postgres.name
     networks_advanced {
         name = docker_network.microservices.name
     }

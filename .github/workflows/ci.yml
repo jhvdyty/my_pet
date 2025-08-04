@@ -46,45 +46,45 @@ jobs:
         cd app
         flake8 .
 
-  deploy-to-staging:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    
-    steps:
-    - name: Deploy to Staging via Webhook
-      run: |
-        curl -X POST \
-          -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
-          -H "Content-Type: application/json" \
-          -d '{"branch": "develop"}' \
-          https://4d7abb03828d.ngrok-free.app
-
-
-  deploy-to-production:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Deploy to Production
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.PROD_USER }}
-        key: ${{ secrets.PROD_SSH_KEY }}
-        port: ${{ secrets.PROD_PORT }}
-        timeout: 60s
-        command_timeout: 15m
-        script: |
-          cd /home/${{ secrets.PROD_USER }}/my_pet
-          git pull origin main
-          docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml build
-          docker compose -f docker-compose.prod.yml up -d
+ # deploy-to-staging:
+ #   needs: build-and-test
+ #   runs-on: ubuntu-latest
+ #   i#f: github.ref == 'refs/heads/develop'
+ #   
+ #   steps:
+ #   - name: Deploy to Staging via Webhook
+ #     run: |
+ #       curl -X POST \
+ #         -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
+ #         -H "Content-Type: application/json" \
+ #         -d '{"branch": "develop"}' \
+ #         https://4d7abb03828d.ngrok-free.app
+#
+#
+ # deploy-to-production:
+ #   needs: build-and-test
+ #   runs-on: ubuntu-latest
+ #   i#f: github.ref == 'refs/heads/main'
+ #   
+ #   steps:
+ #   - name: Checkout code
+ #     uses: actions/checkout@v4
+ #   
+ #   - name: Deploy to Production
+ #     uses: appleboy/ssh-action@v1.0.3
+ #     with:
+ #       host: ${{ secrets.PROD_HOST }}
+ #       username: ${{ secrets.PROD_USER }}
+ #       key: ${{ secrets.PROD_SSH_KEY }}
+ #       port: ${{ secrets.PROD_PORT }}
+ #       timeout: 60s
+ #       command_timeout: 15m
+ #       script: |
+ #         cd /home/${{ secrets.PROD_USER }}/my_pet
+ #         git pull origin main
+ #         docker compose -f docker-compose.prod.yml down
+ #         docker compose -f docker-compose.prod.yml build
+ #         docker compose -f docker-compose.prod.yml up -d
 
 
         

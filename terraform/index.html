@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер задач</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .add-task-form {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            padding: 8px 16px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .tasks-section {
+            padding: 30px;
+        }
+
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .tasks-header h2 {
+            color: #495057;
+            font-size: 1.8em;
+            font-weight: 300;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 2px solid #4facfe;
+            color: #4facfe;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #4facfe;
+            color: white;
+        }
+
+        .task-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .task-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .task-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .task-id {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .task-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 10px;
+        }
+
+        .task-description {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .no-tasks {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .no-tasks h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .add-task-form,
+            .tasks-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Менеджер задач</h1>
+            <p>Управляйте своими задачами легко и эффективно</p>
+        </div>
+
+        <div class="add-task-form">
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="title">Название задачи</label>
+                    <input type="text" id="title" name="title" required placeholder="Введите название задачи...">
+                </div>
+                <div class="form-group">
+                    <label for="description">Описание</label>
+                    <textarea id="description" name="description" required placeholder="Опишите задачу подробнее..."></textarea>
+                </div>
+                <button type="submit" class="btn">Добавить задачу</button>
+            </form>
+        </div>
+
+        <div class="tasks-section">
+            <div class="tasks-header">
+                <h2>Список задач</h2>
+                <button class="refresh-btn" onclick="loadTasks()">🔄 Обновить</button>
+            </div>
+            
+            <div id="messageArea"></div>
+            <div id="tasksContainer">
+                <div class="loading">Загрузка задач...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+
+        // Показать сообщение
+        function showMessage(message, type = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="${type}-message">${message}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 3000);
+        }
+
+        // Загрузить задачи
+        async function loadTasks() {
+            const container = document.getElementById('tasksContainer');
+            
+            try {
+                container.innerHTML = '<div class="loading">Загрузка задач...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/tasks`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const tasks = await response.json();
+                displayTasks(tasks);
+                
+            } catch (error) {
+                console.error('Ошибка при загрузке задач:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        Ошибка при загрузке задач. Убедитесь, что сервер запущен на ${API_BASE_URL}
+                    </div>
+                `;
+            }
+        }
+
+        // Отобразить задачи
+        function displayTasks(tasks) {
+            const container = document.getElementById('tasksContainer');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="no-tasks">
+                        <h3>📝 Пока нет задач</h3>
+                        <p>Добавьте свою первую задачу, используя форму выше</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tasksHTML = tasks.map(task => `
+                <div class="task-item">
+                    <div class="task-header">
+                        <div class="task-id">#${task.id}</div>
+                        <button class="btn-danger" onclick="deleteTask(${task.id})">
+                            🗑️ Удалить
+                        </button>
+                    </div>
+                    <div class="task-title">${escapeHtml(task.title)}</div>
+                    <div class="task-description">${escapeHtml(task.description)}</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="task-list">${tasksHTML}</div>`;
+        }
+
+        // Экранирование HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Добавить задачу
+        async function addTask(taskData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(taskData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Ошибка при добавлении задачи');
+                }
+
+                const newTask = await response.json();
+                showMessage(`Задача "${newTask.title}" успешно добавлена!`);
+                loadTasks();
+                
+                // Очистить форму
+                document.getElementById('taskForm').reset();
+                
+            } catch (error) {
+                console.error('Ошибка при добавлении задачи:', error);
+                showMessage(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Удалить задачу
+        async function deleteTask(taskId) {
+            if (!confirm('Вы уверены, что хотите удалить эту задачу?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Ошибка при удалении задачи');
+                }
+
+                showMessage('Задача успешно удалена!');
+                loadTasks();
+                
+            } catch (error) {
+                console.error('Ошибка при удалении задачи:', error);
+                showMessage(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Обработчик формы
+        document.getElementById('taskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const taskData = {
+                title: formData.get('title').trim(),
+                description: formData.get('description').trim()
+            };
+
+            if (!taskData.title || !taskData.description) {
+                showMessage('Пожалуйста, заполните все поля', 'error');
+                return;
+            }
+
+            addTask(taskData);
+        });
+
+        // Загрузить задачи при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadTasks);
+    </script>
+</body>
+</html>

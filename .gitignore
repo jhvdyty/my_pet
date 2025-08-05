@@ -1,0 +1,7 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+authorized_key.json
+terraform/authorized_key.json

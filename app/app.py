@@ -6,6 +6,24 @@ import os
 app = Flask(__name__)
 
 
+@app.route('/')
+def index():
+    return jsonify({
+        'message': 'Task API is running',
+        'endpoints': {
+            'GET /tasks': 'Get all tasks',
+            'POST /tasks': 'Create new task',
+            'GET /tasks/<id>': 'Get specific task',
+            'DELETE /tasks/<id>': 'Delete task'
+        }
+    })
+
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy'}), 200
+
+
 @app.route('/tasks', methods=['GET'])
 def get_all_tasks():
     return jsonify(get_tasks())

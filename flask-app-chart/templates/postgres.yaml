@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: {{ .Values.postgres.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: {{ .Values.postgres.name }}
   template:
     metadata:
       labels:
-        app: postgres
+        app: {{ .Values.postgres.name }}
     spec:
       containers:
-      - name: postgres
-        image: postgres:16.0
+      - name: {{ .Values.postgres.name }}
+        image: {{ .Values.postgres.image }}
         ports:
         - containerPort: 5432
         env:
         - name: POSTGRES_DB
-          value: "mydb"
+          value: {{ .Values.postgres.database | quote }}
         - name: POSTGRES_USER
-          value: "postgres"
+          value: {{ .Values.postgres.username | quote }}
         - name: POSTGRES_PASSWORD
-          value: "postgres"
+          value: {{ .Values.postgres.password | quote }}
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
@@ -34,9 +34,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: {{ .Values.postgres.name }}
 spec:
   ports:
   - port: 5432
   selector:
-    app: postgres
+    app: {{ .Values.postgres.name }}

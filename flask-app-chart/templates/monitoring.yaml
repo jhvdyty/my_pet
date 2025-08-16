@@ -1,3 +1,4 @@
+{{- if .Values.monitoring.prometheus.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,7 +15,7 @@ spec:
     spec:
       containers:
       - name: prometheus
-        image: prom/prometheus
+        image: {{ .Values.monitoring.prometheus.image }}
         ports:
         - containerPort: 9090
 ---
@@ -27,7 +28,9 @@ spec:
   - port: 9090
   selector:
     app: prometheus
+{{- end }}
 ---
+{{- if .Values.monitoring.grafana.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -44,12 +47,12 @@ spec:
     spec:
       containers:
       - name: grafana
-        image: grafana/grafana
+        image: {{ .Values.monitoring.grafana.image }}
         ports:
         - containerPort: 3000
         env:
         - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "admin"
+          value: {{ .Values.monitoring.grafana.adminPassword | quote }}
 ---
 apiVersion: v1
 kind: Service
@@ -60,3 +63,4 @@ spec:
   - port: 3000
   selector:
     app: grafana
+{{- end }}

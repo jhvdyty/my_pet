@@ -1,3 +1,4 @@
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,24 +11,25 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: myapp.local
+  - host: {{ .Values.ingress.host }}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: flask-app
+            name: {{ .Values.app.name }}
             port:
-              number: 5000
+              number: {{ .Values.app.port }}
       - path: /tasks
         pathType: Prefix
         backend:
           service:
-            name: flask-app
+            name: {{ .Values.app.name }}
             port:
-              number: 5000
-  - host: grafana.local
+              number: {{ .Values.app.port }}
+  {{- if .Values.monitoring.grafana.enabled }}
+  - host: {{ .Values.ingress.grafanaHost }}
     http:
       paths:
       - path: /
@@ -37,3 +39,5 @@ spec:
             name: grafana
             port:
               number: 3000
+  {{- end }}
+{{- end }}

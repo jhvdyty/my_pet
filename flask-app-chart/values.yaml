@@ -1,0 +1,30 @@
+# Flask
+app:
+  name: flask-app
+  image: yufytfi/new_flask-app:latest
+  replicas: 2
+  port: 5000
+
+# PostgreSQL
+postgres:
+  name: postgres
+  image: postgres:16.0
+  database: mydb
+  username: postgres
+  password: postgres
+
+# Ingress
+ingress:
+  enabled: true
+  host: myapp.local
+  grafanaHost: grafana.local
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    image: prom/prometheus
+  grafana:
+    enabled: true
+    image: grafana/grafana
+    adminPassword: admin

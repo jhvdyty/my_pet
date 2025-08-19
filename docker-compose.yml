@@ -17,7 +17,6 @@ services:
     networks:
       - microservices
 
-
   postgres:
     image: postgres:16.0
     container_name: postgres
@@ -32,7 +31,6 @@ services:
       - postgres_data:/var/lib/postgresql/data 
     networks:
       - microservices
-
 
   prometheus:
     image: prom/prometheus
@@ -63,6 +61,3 @@ volumes:
 networks:
   microservices:
     driver: bridge
-
-
-    

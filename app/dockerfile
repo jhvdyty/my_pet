@@ -3,18 +3,17 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Копируем requirements.txt если есть, или устанавливаем нужные пакеты
-COPY requirements.txt* ./
-RUN pip install flask psycopg2-binary
+# Копируем requirements.txt
+COPY requirements.txt ./
+
+# Устанавливаем зависимости из requirements.txt
+RUN pip install -r requirements.txt
 
 # Копируем код приложения
 COPY . .
 
 # Открываем порт
 EXPOSE 5000
-
-# Добавляем health check endpoint
-RUN echo 'from flask import Flask; app = Flask(__name__); @app.route("/health"); def health(): return "OK"' >> health.py
 
 # Запускаем приложение
 CMD ["python", "app.py"]

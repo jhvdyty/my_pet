@@ -1,8 +1,84 @@
 
 locals {
-    backet_name = "tf-info-site-bucket"
-    index = "index.html"
+    app_name = "flask-app"
+    db_password = "postgres"
 }
+
+// сеть 
+resource "yandex_vpc_network" "main" {
+  name = "${local.app_name}-network"  
+}
+
+resource "yandex_vpc_subnet" "main" {
+  name           = "${local.app_name}-subnet"
+  zone           = "ru-central1-a"
+  network_id     = yandex_vpc_network.main.id
+  v4_cidr_blocks = ["10.1.0.0/24"]
+}
+
+//виртуалка 
+
+resource "yandex_compute_instance" "k8s-node" {
+  name        = "${local.app_name}-vm"
+  zone        = "ru-central1-a"
+  platform_id = "standard-v3"
+
+  resources {
+    cores  = 2
+    memory = 4
+  }
+
+  boot_disk {
+    initialize_params {
+      image_id = "fd8kdq6d0p8sij7h5qe3"
+      size = 20
+      type = "network-ssd"
+    }
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.main.id
+    nat       = true
+  }
+
+  metadata = {
+    user-data = file("cloud-init.yaml")
+  }
+}
+
+//postres
+resource "yandex_mdb_postgresql_cluster" "main" {
+  name = "${local.app_name}-postgres"
+  environment = "PRODUCTION"
+  network_id = yandex_vpc_network.main.id
+
+  config {
+    version = "16"
+    resources {
+      resource_preset_id = "s2.micro"
+      disk_size = 20
+      disk_type_id = "network-ssd"
+    }
+  }
+
+  host {
+    zone = "ru-central1-a"
+    subnet_id = yandex_vpc_subnet.main.id
+  }
+}
+
+resource "yandex_mdb_postgresql_database" "app_db" {
+  cluster_id = yandex_mdb_postgresql_cluster.main.id
+  name       = "name_db"
+  owner = yandex_mdb_postgresql_user.app_user.name
+}
+
+resource "yandex_mdb_postgresql_user" "app_user" {
+  cluster_id = yandex_mdb_postgresql_cluster.main.id
+  name       = "postgres"
+  password   = local.db_password
+}
+
 
 // Create SA
 resource "yandex_iam_service_account" "sa" {
@@ -27,11 +103,11 @@ resource "yandex_iam_service_account_static_access_key" "sa-static-key" {
 resource "yandex_storage_bucket" "test" {
   access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
   secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
-  bucket = local.backet_name
+  bucket = "tf-info-site-bucket"
   acl    = "public-read"
 
   website {
-    index_document = local.index
+    index_document = "index.html"
   }
 }
 
@@ -41,57 +117,24 @@ resource "yandex_storage_object" "index" {
   secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
   bucket = yandex_storage_bucket.test.id
   acl    = "public-read"
-  key    = local.index
-  source = "${local.index}"
+  key    = "index.html"
+  source = "index.html"
 }
 
 
-output site_name {
+output "vm_external_ip" {
+  value = yandex_compute_instance.k8s-node.network_interface.0.nat_ip_address
+}
+
+output "postgres_host" {
+  value = yandex_mdb_postgresql_cluster.main.host.0.fqdn
+}
+
+output "site_url" {
   value = yandex_storage_bucket.test.website_endpoint
 }
 
-
-
-//terraform {
-//    required_providers {
-//        docker = {
-//            source  = "kreuzwerker/docker"
-//            version = "~> 3.0.2"
-//        }
-//    }
-//}
-//
-//provider "docker" {}
-//
-//resource "docker_network" "microservices" {
-//    name = "microservices"
-//}
-//
-//resource "docker_image" "postgres" {
-//    name = "postgres:16.0"
-//}
-//
-//resource "docker_container" "postgres" {
-//    name  = "postgres"
-//    image = docker_image.postgres.name
-//    
-//    networks_advanced {
-//        name = docker_network.microservices.name
-//    }
-//    
-//    env = [
-//        "POSTGRES_USER=postgres",
-//        "POSTGRES_PASSWORD=postgres",
-//        "POSTGRES_DB=mydb"
-//    ]
-//    
-//    ports {
-//        internal = 5432
-//        external = 5432
-//    }
-//    
-//    volumes {
-//        container_path = "/var/lib/postgresql/data"
-//        host_path = abspath("${path.module}/postgres_data")
-//    }
-//}
+output "database_url" {
+  value = "postgresql://postgres:${local.db_password}@${yandex_mdb_postgresql_cluster.main.host.0.fqdn}:6432/mydb"
+  sensitive = true
+}

@@ -1,0 +1,7 @@
+users:
+  - name: "ubuntu"
+    groups: "sudo"
+    shell: "/bin/bash"
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ssh-rsa YOUR_SSH_PUBLIC_KEY_HERE # ЗАМЕНИТЕ НА СВОЙ SSH КЛЮЧ

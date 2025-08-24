@@ -1,7 +1,13 @@
 from flask import Flask, jsonify, request
 from models.task import add_task, get_tasks, get_task
 from models.task import delete_task as delete_task_model
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import (
+    Counter,
+    Histogram,
+    Gauge,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+)
 import time
 import os
 

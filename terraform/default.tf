@@ -1,20 +1,23 @@
 terraform {
   required_providers {
-    yandex = {
-      source = "yandex-cloud/yandex"
-      version = "0.148.0"
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
     }
   }
+  required_version = ">= 1.0"
 }
 
 
 locals {
-    folder_id = "b1g3ta9ecntdpujpoonn"
-    cloud_id  = "ajem9017tmh7cf487v7h"
+  project_id = "flask-app-project-469909" 
+  region     = "us-central1"
+  zone       = "us-central1-a"
 }
 
-provider "yandex" {
-    cloud_id  = local.cloud_id
-    folder_id = local.folder_id
-    service_account_key_file = abspath("./authorized_key.json")
+# Провайдер Google Cloud
+provider "google" {
+  project = local.project_id
+  region  = local.region
+  zone    = local.zone
 }

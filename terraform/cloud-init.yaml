@@ -1,7 +1,59 @@
 users:
-  - name: "ubuntu"
-    groups: "sudo"
-    shell: "/bin/bash"
+  - name: ubuntu
+    groups: sudo
+    shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh_authorized_keys:
-      - ssh-rsa YOUR_SSH_PUBLIC_KEY_HERE # ЗАМЕНИТЕ НА СВОЙ SSH КЛЮЧ
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDJPCt2w9+Hcd+HNiwC7CV78aaTpDOntHa1mmPz7ReO5YZI0gE00N2YHoIERIHyG3CKRn86yeCQ0lwAX+m5f5eEu7YIwwS0NImoGHqF67bJbq462kR1NBBEM1hvnyvLgS6DUPGDEQPSZCVz8i7a8h2ByigxtTG9VyUnp6Yy4phGktKPqN9xm/XzdbZKe3OpzygTMgEFppEOdWFdk1Tok8eiBzW+c91SWZt/GMnJ8N5GMTF+UPOUh99VtUqFtxXqwU/RiYMFoTI993RlFPmBWi9sSS11mw6e6U+pJHXXbOBK5noxkt2ecc8TxIiVBHgn7vn6k7vPwq2zMunckEalhls6Ox222Cq5UMhFREnv6ILdm6ADRrm09+Ia9xTuv0jHcKyBo8qR4WuaXQ+4dhB3sw4l+DUxzR5BKDu/LJhxm3YDWpBb9luGrEXqmBUjcgiTvHs4h6lNDbQAPXjzhPpiIdzfgmdBxA4N097UY0x48ObRLLV1vmGzfUhdfcOboE1KNNM3n6gpZyxxu5GYofyx6P9wapyI07y7dsCncjVDKGbPjoRQkKAbSR2+iP7uZ9u/mAFXzOIx8XuqDIreQOkYRq/7qrwjXfMaNQoVg3aBkUm95wjfZM1Wx/P4HAevvW9w9ogosNOxkFD1LbAsFtZAcptBfCxTsXySnSAqKALS3B7oGw== github-actions
+
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker.io
+  - docker-compose
+  - curl
+  - wget
+  - git
+
+runcmd:
+  - systemctl start docker
+  - systemctl enable docker
+  - usermod -aG docker ubuntu
+
+  - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  - chmod +x kubectl
+  - mv kubectl /usr/local/bin/
+
+  - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+  - curl -sfL https://get.k3s.io | sh -
+  - mkdir -p /home/ubuntu/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+  - chown ubuntu:ubuntu /home/ubuntu/.kube/config
+
+write_files:
+  - path: /home/ubuntu/README.md
+    content: |
+      # Flask App Server
+      
+      ## Полезные команды:
+      
+      # Проверить статус k3s
+      sudo systemctl status k3s
+      
+      # Посмотреть поды
+      kubectl get pods -A
+      
+      # Применить манифесты
+      kubectl apply -f flask-app-chart/
+      
+      # Посмотреть логи
+      kubectl logs -f deployment/flask-app
+      
+      ## Подключение к базе:
+      Используйте хост из terraform output "postgres_host"
+      
+    owner: ubuntu:ubuntu
+    permissions: '0644'

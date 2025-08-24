@@ -1,140 +1,195 @@
 
 locals {
-    app_name = "flask-app"
-    db_password = "postgres"
+  app_name = "flask-app"
+  
+  db_password = "postgres" 
 }
 
-// сеть 
-resource "yandex_vpc_network" "main" {
-  name = "${local.app_name}-network"  
+# API
+resource "google_project_service" "compute" {
+  service = "compute.googleapis.com"
 }
 
-resource "yandex_vpc_subnet" "main" {
-  name           = "${local.app_name}-subnet"
-  zone           = "ru-central1-a"
-  network_id     = yandex_vpc_network.main.id
-  v4_cidr_blocks = ["10.1.0.0/24"]
+resource "google_project_service" "sql" {
+  service = "sqladmin.googleapis.com"
 }
 
-//виртуалка 
+resource "google_project_service" "storage" {
+  service = "storage.googleapis.com"
+}
 
-resource "yandex_compute_instance" "k8s-node" {
-  name        = "${local.app_name}-vm"
-  zone        = "ru-central1-a"
-  platform_id = "standard-v3"
+# сеть
+resource "google_compute_network" "main" {
+  name                    = "${local.app_name}-network"
+  auto_create_subnetworks = false
+  depends_on              = [google_project_service.compute]
+}
 
-  resources {
-    cores  = 2
-    memory = 4
+resource "google_compute_subnetwork" "main" {
+  name          = "${local.app_name}-subnet"
+  ip_cidr_range = "10.1.0.0/24"
+  region        = local.region
+  network       = google_compute_network.main.id
+}
+
+# firewall
+resource "google_compute_firewall" "flask_app" {
+  name    = "${local.app_name}-firewall"
+  network = google_compute_network.main.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80", "443", "30000", "30090", "30300"]
   }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["flask-app"]
+}
+
+# VM
+resource "google_compute_instance" "k8s_node" {
+  name         = "${local.app_name}-vm"
+  machine_type = "e2-small" # 2 vCPU, 2GB RAM 
+  zone         = local.zone
+  
+  tags = ["flask-app"]
 
   boot_disk {
     initialize_params {
-      image_id = "fd8kdq6d0p8sij7h5qe3"
-      size = 20
-      type = "network-ssd"
+      image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size  = 20 
+      type  = "pd-standard"
     }
   }
 
   network_interface {
-    subnet_id = yandex_vpc_subnet.main.id
-    nat       = true
+    subnetwork = google_compute_subnetwork.main.id
+    access_config {
+      // ephemeral public IP
+    }
   }
 
   metadata = {
     user-data = file("cloud-init.yaml")
   }
+
+  metadata_startup_script = <<-EOF
+    #!/bin/bash
+    # Дополнительная настройка если нужно
+    echo "VM started successfully" > /tmp/startup.log
+  EOF
+
+  depends_on = [google_project_service.compute]
 }
 
-//postres
-resource "yandex_mdb_postgresql_cluster" "main" {
-  name = "${local.app_name}-postgres"
-  environment = "PRODUCTION"
-  network_id = yandex_vpc_network.main.id
-
-  config {
-    version = "16"
-    resources {
-      resource_preset_id = "s2.micro"
-      disk_size = 20
-      disk_type_id = "network-ssd"
+# cloud sql
+resource "google_sql_database_instance" "postgres" {
+  name             = "${local.app_name}-postgres"
+  database_version = "POSTGRES_16"
+  region          = local.region
+  
+  settings {
+    tier = "db-f1-micro"
+    
+    disk_size = 20
+    disk_type = "PD_SSD"
+    
+    backup_configuration {
+      enabled    = true
+      start_time = "03:00"
+    }
+    
+    ip_configuration {
+      ipv4_enabled    = true
+      authorized_networks {
+        name  = "flask-vm"
+        value = "${google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip}/32"
+      }
+      authorized_networks {
+        name  = "all"
+        value = "0.0.0.0/0"
+      }
     }
   }
 
-  host {
-    zone = "ru-central1-a"
-    subnet_id = yandex_vpc_subnet.main.id
-  }
+  depends_on = [google_project_service.sql]
 }
 
-resource "yandex_mdb_postgresql_database" "app_db" {
-  cluster_id = yandex_mdb_postgresql_cluster.main.id
-  name       = "name_db"
-  owner = yandex_mdb_postgresql_user.app_user.name
+resource "google_sql_database" "app_db" {
+  name     = "mydb"
+  instance = google_sql_database_instance.postgres.name
 }
 
-resource "yandex_mdb_postgresql_user" "app_user" {
-  cluster_id = yandex_mdb_postgresql_cluster.main.id
-  name       = "postgres"
-  password   = local.db_password
+resource "google_sql_user" "app_user" {
+  name     = "postgres"
+  instance = google_sql_database_instance.postgres.name
+  password = local.db_password
 }
 
-
-// Create SA
-resource "yandex_iam_service_account" "sa" {
-  folder_id = local.folder_id
-  name      = "tf-test-sa"
-}
-
-// Grant permissions
-resource "yandex_resourcemanager_folder_iam_member" "sa-editor" {
-  folder_id = local.folder_id
-  role      = "storage.admin"
-  member    = "serviceAccount:${yandex_iam_service_account.sa.id}"
-}
-
-// Create Static Access Keys
-resource "yandex_iam_service_account_static_access_key" "sa-static-key" {
-  service_account_id = yandex_iam_service_account.sa.id
-  description        = "static access key for object storage"
-}
-
-// Use keys to create bucket
-resource "yandex_storage_bucket" "test" {
-  access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
-  secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
-  bucket = "tf-info-site-bucket"
-  acl    = "public-read"
+# cloud storage
+resource "google_storage_bucket" "static_site" {
+  name          = "${local.project_id}-static-site"
+  location      = "US"
+  force_destroy = true
 
   website {
-    index_document = "index.html"
+    main_page_suffix = "index.html"
   }
+
+  uniform_bucket_level_access = true
 }
 
+# bucket public
+resource "google_storage_bucket_iam_member" "public_access" {
+  bucket = google_storage_bucket.static_site.name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
 
-resource "yandex_storage_object" "index" {
-  access_key = yandex_iam_service_account_static_access_key.sa-static-key.access_key
-  secret_key = yandex_iam_service_account_static_access_key.sa-static-key.secret_key
-  bucket = yandex_storage_bucket.test.id
-  acl    = "public-read"
-  key    = "index.html"
+# index.html
+resource "google_storage_bucket_object" "index" {
+  name   = "index.html"
+  bucket = google_storage_bucket.static_site.name
   source = "index.html"
 }
 
-
+# output
 output "vm_external_ip" {
-  value = yandex_compute_instance.k8s-node.network_interface.0.nat_ip_address
+  value = google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip
 }
 
 output "postgres_host" {
-  value = yandex_mdb_postgresql_cluster.main.host.0.fqdn
+  value = google_sql_database_instance.postgres.public_ip_address
 }
 
-output "site_url" {
-  value = yandex_storage_bucket.test.website_endpoint
+output "postgres_connection_name" {
+  value = google_sql_database_instance.postgres.connection_name
 }
 
 output "database_url" {
-  value = "postgresql://postgres:${local.db_password}@${yandex_mdb_postgresql_cluster.main.host.0.fqdn}:6432/mydb"
+  value     = "postgresql://postgres:${local.db_password}@${google_sql_database_instance.postgres.public_ip_address}:5432/mydb"
   sensitive = true
+}
+
+output "static_site_url" {
+  value = "https://storage.googleapis.com/${google_storage_bucket.static_site.name}/index.html"
+}
+
+# инфа
+output "useful_commands" {
+  value = <<-EOF
+  
+  подключение к VM
+  ssh ubuntu@${google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip}
+  
+  URL приложения
+  http://${google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip}:30000
+  
+  prometheus
+  http://${google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip}:30090
+  
+  grafana
+  http://${google_compute_instance.k8s_node.network_interface[0].access_config[0].nat_ip}:30300
+  
+  EOF
 }

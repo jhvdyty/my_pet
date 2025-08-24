@@ -5,3 +5,5 @@
 
 authorized_key.json
 terraform/authorized_key.json
+terraform.tfstate
+gcp-key.json

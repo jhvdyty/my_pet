@@ -5,8 +5,8 @@ from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTEN
 import time
 import os
 
-app = Flask(__name__)
 
+app = Flask(__name__)
 
 REQUEST_COUNT  = Counter(
     'flask_requests_total', 
@@ -35,9 +35,11 @@ REQUESTS_TASKS = Counter(
     'Requests to /tasks endpoint'
 )
 
+
 @app.before_request
 def before_request():
     request.start_time = time.time()
+
 
 @app.after_request
 def after_request(response):
@@ -55,6 +57,7 @@ def after_request(response):
     ).observe(request_duration)
 
     return response
+
 
 @app.route('/metrics')
 def metrics():
@@ -93,7 +96,7 @@ def ready():
     try:
         get_tasks()
         return jsonify({'status': 'ready'}), 200
-    except:
+    except Exception:
         return jsonify({'status': 'not ready'}), 503
 
 
@@ -105,7 +108,6 @@ def get_all_tasks():
 
 @app.route('/tasks', methods=['POST'])
 def create_task():
-    
     task_data = request.get_json()
     if not task_data:
         return jsonify({'error': 'No input data provided'}), 400
@@ -130,8 +132,7 @@ def delete_task(task_id):
     success = delete_task_model(task_id)
     if success:
         return '', 204
-    else:
-        return jsonify({'error': 'Task not found'}), 404
+    return jsonify({'error': 'Task not found'}), 404
 
 
 if __name__ == '__main__': 

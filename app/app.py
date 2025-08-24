@@ -8,30 +8,30 @@ import os
 
 app = Flask(__name__)
 
-REQUEST_COUNT  = Counter(
-    'flask_requests_total', 
-    'Total requests', 
+REQUEST_COUNT = Counter(
+    'flask_requests_total',
+    'Total requests',
     ['method', 'endpoint', 'status']
 )
 
 REQUEST_DURATION = Histogram(
     'flask_request_duration_seconds',
-    'Request duration', 
+    'Request duration',
     ['method', 'endpoint']
 )
 
 ACTIVE_TASKS = Gauge(
-    'flask_active_tasks_total', 
+    'flask_active_tasks_total',
     'Total number of active tasks'
 )
 
 DB_CONNECTIONS = Gauge(
-    'flask_db_connections_active', 
+    'flask_db_connections_active',
     'Active database connections'
 )
 
 REQUESTS_TASKS = Counter(
-    'flask_requests_tasks_total', 
+    'flask_requests_tasks_total',
     'Requests to /tasks endpoint'
 )
 
@@ -46,13 +46,13 @@ def after_request(response):
     request_duration = time.time() - request.start_time
 
     REQUEST_COUNT.labels(
-        method=request.method, 
-        endpoint=request.path, 
+        method=request.method,
+        endpoint=request.path,
         status=response.status_code
     ).inc()
 
     REQUEST_DURATION.labels(
-        method=request.method, 
+        method=request.method,
         endpoint=request.path
     ).observe(request_duration)
 
@@ -62,13 +62,12 @@ def after_request(response):
 @app.route('/metrics')
 def metrics():
     try:
-        task = get_tasks()
-        ACTIVE_TASKS.set(len(task))
-    except:
+        tasks = get_tasks()
+        ACTIVE_TASKS.set(len(tasks))
+    except Exception:
         pass
 
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
-
 
 
 @app.route('/')
@@ -127,7 +126,7 @@ def get_single_task(task_id):
     return jsonify(task)
 
 
-@app.route("/tasks/<int:task_id>", methods=["DELETE"])
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     success = delete_task_model(task_id)
     if success:
@@ -135,6 +134,6 @@ def delete_task(task_id):
     return jsonify({'error': 'Task not found'}), 404
 
 
-if __name__ == '__main__': 
-    port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

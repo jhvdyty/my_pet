@@ -8,12 +8,32 @@ import os
 app = Flask(__name__)
 
 
-REQUEST_COUNT  = Counter('flask_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
-REQUEST_DURATION = Histogram('flask_request_duration_seconds', 'Request duration', ['method', 'endpoint'])
-ACTIVE_TASKS = Gauge('flask_active_tasks_total', 'Total number of active tasks')
-DB_CONNECTIONS = Gauge('flask_db_connections_active', 'Active database connections')
+REQUEST_COUNT  = Counter(
+    'flask_requests_total', 
+    'Total requests', 
+    ['method', 'endpoint', 'status']
+)
 
-REQUESTS_TASKS = Counter('flask_requests_tasks_total', 'Requests to /tasks endpoint')
+REQUEST_DURATION = Histogram(
+    'flask_request_duration_seconds',
+    'Request duration', 
+    ['method', 'endpoint']
+)
+
+ACTIVE_TASKS = Gauge(
+    'flask_active_tasks_total', 
+    'Total number of active tasks'
+)
+
+DB_CONNECTIONS = Gauge(
+    'flask_db_connections_active', 
+    'Active database connections'
+)
+
+REQUESTS_TASKS = Counter(
+    'flask_requests_tasks_total', 
+    'Requests to /tasks endpoint'
+)
 
 @app.before_request
 def before_request():
@@ -66,6 +86,7 @@ def index():
 @app.route('/health')
 def health():
     return jsonify({'status': 'healthy'}), 200
+
 
 @app.route('/ready')
 def ready():
